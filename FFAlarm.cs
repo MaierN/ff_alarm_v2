@@ -16,7 +16,7 @@ namespace ff_alarm
 
         static bool DEBUG = false;
 
-        static string MESSAGE_ENEMY_FF = ">Enemy team agreed to a surrender";
+        static string MESSAGE_ENEMY_FF = "<font color=\"#FFA500\">Enemy team agreed to a surrender";
 
         static Process leagueProcess;
 
