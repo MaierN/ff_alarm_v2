@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Media;
 
 namespace ff_alarm
 {
@@ -19,23 +20,18 @@ namespace ff_alarm
 
         static Process leagueProcess;
 
-        static string byteArrayToString(byte[] bs) {
-            string r = "";
-            foreach (byte b in bs) {
-                r += b.ToString("X2") + " ";
-            }
-            return r;
-        }
-
-        static byte[] readMemory(long address, int size) {
+        static byte[] readMemory(long address, int size)
+        {
             byte[] resBuffer = new byte[size];
             ReadProcessMemory(leagueProcess.Handle, (IntPtr)address, resBuffer, size, out IntPtr readSize);
             return (int)readSize == size ? resBuffer : null;
         }
 
-        static string readString(long address) {
+        static string readString(long address)
+        {
             string res = "";
-            for (int i = 0; ; i++) {
+            for (int i = 0; ; i++)
+            {
                 byte currChar = readMemory(address + i, 1)[0];
                 if (currChar == 0) break;
                 else res += (char)currChar;
@@ -52,6 +48,7 @@ namespace ff_alarm
             if (processes.Length == 0)
             {
                 Console.WriteLine("Could not find process \"League of Legends\"");
+                Console.WriteLine("Press enter to end");
                 Console.ReadLine();
                 return;
             }
@@ -76,43 +73,50 @@ namespace ff_alarm
 
             int leagueNumberMessages = leagueClientChatUi + 0xB4;
             if (DEBUG) Console.WriteLine("leagueNumberMessages: 0x" + leagueNumberMessages.ToString("X"));
-            
+
             int leagueLastMessageId = leagueClientChatUi + 0xB0;
             if (DEBUG) Console.WriteLine("leagueLastMessageId: 0x" + leagueLastMessageId.ToString("X"));
 
             int leagueMessageList = leagueClientChatUi + 0xB8;
 
             int oldLastMessageId = -1;
-            
-            for (int j = 0;; j++) {
+
+            for (int j = 0; ; j++)
+            {
 
                 int numberMessages = BitConverter.ToInt32(readMemory(leagueNumberMessages, 4), 0);
                 if (DEBUG) Console.WriteLine("numberMessages: " + numberMessages);
 
                 int lastMessageId = (BitConverter.ToInt32(readMemory(leagueLastMessageId, 4), 0) - 1) % 100;
                 if (DEBUG) Console.WriteLine("lastMessageId: " + lastMessageId);
-                
-                for (int i = 0; i < numberMessages; i++) {
-                    int leagueMessagePtr = leagueMessageList + i*0xC;
+
+                for (int i = 0; i < numberMessages; i++)
+                {
+                    int leagueMessagePtr = leagueMessageList + i * 0xC;
                     int leagueMessage = BitConverter.ToInt32(readMemory(leagueMessagePtr, 4), 0);
                     string message = readString(leagueMessage);
                     if (DEBUG) Console.WriteLine(message);
 
-                    if (i == lastMessageId && lastMessageId != oldLastMessageId) {
+                    if (i == lastMessageId && lastMessageId != oldLastMessageId)
+                    {
                         Console.Write("Last message (" + lastMessageId + "): ");
                         Console.WriteLine(message);
                         oldLastMessageId = lastMessageId;
                     }
 
-                    if (message.Contains(MESSAGE_ENEMY_FF)) {
-                        Console.WriteLine("FF FF FF!!!");
+                    if (message.Contains(MESSAGE_ENEMY_FF))
+                    {
+                        Console.WriteLine("Alarm!!!");
+                        SoundPlayer simpleSound = new SoundPlayer(@"alarm_sound.wav");
+                        simpleSound.PlaySync();
 
+                        Console.WriteLine("Press enter to end");
                         Console.ReadLine();
                         return;
                     }
                 }
 
-                Thread.Sleep(100);
+                Thread.Sleep(10);
             }
         }
     }
