@@ -15,10 +15,7 @@ namespace ff_alarm
 
         static bool DEBUG = false;
 
-        static long MIN_ADDRESS = 0x0;
-        static long MAX_ADDRESS = 0x7FFFFFFF;
-
-        static string MESSAGE_ENEMY_FF = "Enemy team agreed to a surrender";
+        static string MESSAGE_ENEMY_FF = "<font color=\"#FFA500\">Enemy team agreed to a surrender";
 
         static Process leagueProcess;
 
@@ -44,30 +41,6 @@ namespace ff_alarm
                 else res += (char)currChar;
             }
             return res;
-        }
-
-        static void scanForBytes(byte[] search, int alignOn, int alignStart) {
-            for (long i = alignStart; i <= MAX_ADDRESS; i += alignOn) {
-                if (i % 0x1000000 == 0) {
-                    Console.WriteLine("Scanning... (0x" + i.ToString("X8") + "/0x" + MAX_ADDRESS.ToString("X8") + ")");
-                }
-                byte[] res = readMemory(i, search.Length);
-                if (res == null) continue;
-                bool isEqual = true;
-                for (int j = 0; j < search.Length; j++) {
-                    if (search[j] != res[j]) {
-                        isEqual = false;
-                        break;
-                    }
-                }
-                if (isEqual) {
-                    string resJoined = "";
-                    for (int j = 0; j < res.Length; j++) {
-                        resJoined += "0x" + res[j].ToString("X2") + " ";
-                    }
-                    Console.WriteLine("Found at address 0x" + i.ToString("X") + ": " + resJoined);
-                }
-            }
         }
 
         static void Main(string[] args)
@@ -103,19 +76,33 @@ namespace ff_alarm
 
             int leagueNumberMessages = leagueClientChatUi + 0xB4;
             if (DEBUG) Console.WriteLine("leagueNumberMessages: 0x" + leagueNumberMessages.ToString("X"));
+            
+            int leagueLastMessageId = leagueClientChatUi + 0xB0;
+            if (DEBUG) Console.WriteLine("leagueLastMessageId: 0x" + leagueLastMessageId.ToString("X"));
 
             int leagueMessageList = leagueClientChatUi + 0xB8;
+
+            int oldLastMessageId = -1;
             
             for (int j = 0;; j++) {
 
                 int numberMessages = BitConverter.ToInt32(readMemory(leagueNumberMessages, 4), 0);
-                Console.WriteLine(j + ": numberMessages: " + numberMessages);
+                if (DEBUG) Console.WriteLine("numberMessages: " + numberMessages);
+
+                int lastMessageId = (BitConverter.ToInt32(readMemory(leagueLastMessageId, 4), 0) - 1) % 100;
+                if (DEBUG) Console.WriteLine("lastMessageId: " + lastMessageId);
                 
                 for (int i = 0; i < numberMessages; i++) {
                     int leagueMessagePtr = leagueMessageList + i*0xC;
                     int leagueMessage = BitConverter.ToInt32(readMemory(leagueMessagePtr, 4), 0);
                     string message = readString(leagueMessage);
                     if (DEBUG) Console.WriteLine(message);
+
+                    if (i == lastMessageId && lastMessageId != oldLastMessageId) {
+                        Console.Write("Last message (" + lastMessageId + "): ");
+                        Console.WriteLine(message);
+                        oldLastMessageId = lastMessageId;
+                    }
 
                     if (message.Contains(MESSAGE_ENEMY_FF)) {
                         Console.WriteLine("FF FF FF!!!");
