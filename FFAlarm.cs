@@ -43,14 +43,17 @@ namespace ff_alarm
         {
             Console.WriteLine("=== FF alarm ===");
 
-            Process[] processes = Process.GetProcessesByName("League of Legends");
+            Process[] processes = new Process[0];
 
-            if (processes.Length == 0)
+            while (processes.Length == 0)
             {
-                Console.WriteLine("Could not find process \"League of Legends\"");
-                Console.WriteLine("Press enter to end");
-                Console.ReadLine();
-                return;
+                processes = Process.GetProcessesByName("League of Legends");
+
+                if (processes.Length == 0)
+                {
+                    Console.WriteLine("Could not find process \"League of Legends\", retrying in 5 second");
+                    Thread.Sleep(5000);
+                }
             }
 
             leagueProcess = processes[0];
@@ -74,12 +77,12 @@ namespace ff_alarm
             int leagueNumberMessages = leagueClientChatUi + 0xB4;
             if (DEBUG) Console.WriteLine("leagueNumberMessages: 0x" + leagueNumberMessages.ToString("X"));
 
-            int leagueLastMessageId = leagueClientChatUi + 0xB0;
-            if (DEBUG) Console.WriteLine("leagueLastMessageId: 0x" + leagueLastMessageId.ToString("X"));
+            int leagueNextMessageId = leagueClientChatUi + 0xB0;
+            if (DEBUG) Console.WriteLine("leagueNextMessageId: 0x" + leagueNextMessageId.ToString("X"));
 
             int leagueMessageList = leagueClientChatUi + 0xB8;
 
-            int oldLastMessageId = -1;
+            int oldNextMessageId = 0;
 
             for (int j = 0; ; j++)
             {
@@ -87,8 +90,8 @@ namespace ff_alarm
                 int numberMessages = BitConverter.ToInt32(readMemory(leagueNumberMessages, 4), 0);
                 if (DEBUG) Console.WriteLine("numberMessages: " + numberMessages);
 
-                int lastMessageId = (BitConverter.ToInt32(readMemory(leagueLastMessageId, 4), 0) - 1) % 100;
-                if (DEBUG) Console.WriteLine("lastMessageId: " + lastMessageId);
+                int nextMessageId = BitConverter.ToInt32(readMemory(leagueNextMessageId, 4), 0);
+                if (DEBUG) Console.WriteLine("nextMessageId: " + nextMessageId);
 
                 for (int i = 0; i < numberMessages; i++)
                 {
@@ -97,11 +100,11 @@ namespace ff_alarm
                     string message = readString(leagueMessage);
                     if (DEBUG) Console.WriteLine(message);
 
-                    if (i == lastMessageId && lastMessageId != oldLastMessageId)
-                    {
-                        Console.Write("Last message (" + lastMessageId + "): ");
+                    if (i == oldNextMessageId && oldNextMessageId != nextMessageId) {
+                        Console.Write("Last message (" + oldNextMessageId + "): ");
                         Console.WriteLine(message);
-                        oldLastMessageId = lastMessageId;
+                        oldNextMessageId += 1;
+                        oldNextMessageId %= 100;
                     }
 
                     if (message.Contains(MESSAGE_ENEMY_FF))
