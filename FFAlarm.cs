@@ -16,7 +16,7 @@ namespace ff_alarm
 
         static bool DEBUG = false;
 
-        static string MESSAGE_ENEMY_FF = "<font color=\"#FFA500\">Enemy team agreed to a surrender";
+        static string MESSAGE_ENEMY_FF = ">Enemy team agreed to a surrender";
 
         static Process leagueProcess;
 
@@ -41,7 +41,7 @@ namespace ff_alarm
 
         static void Main(string[] args)
         {
-            Console.WriteLine("- Go");
+            Console.WriteLine("=== FF alarm ===");
 
             Process[] processes = Process.GetProcessesByName("League of Legends");
 
@@ -106,9 +106,12 @@ namespace ff_alarm
 
                     if (message.Contains(MESSAGE_ENEMY_FF))
                     {
-                        Console.WriteLine("Alarm!!!");
-                        SoundPlayer simpleSound = new SoundPlayer(@"alarm_sound.wav");
-                        simpleSound.PlaySync();
+                        for (int k = 0; k < 2; k++)
+                        {
+                            Console.WriteLine("Alarm!!!");
+                            SoundPlayer simpleSound = new SoundPlayer(@"alarm_sound.wav");
+                            simpleSound.PlaySync();
+                        }
 
                         Console.WriteLine("Press enter to end");
                         Console.ReadLine();
