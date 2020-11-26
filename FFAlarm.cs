@@ -6,9 +6,7 @@ using System.Media;
 
 namespace ff_alarm
 {
-    class ProcessMemoryReadException : Exception
-    {
-    }
+    class ProcessMemoryReadWriteException : Exception {}
 
     class FFAlarm
     {
@@ -31,7 +29,14 @@ namespace ff_alarm
             byte[] resBuffer = new byte[size];
             ReadProcessMemory(leagueProcess.Handle, (IntPtr)address, resBuffer, size, out IntPtr readSize);
             if ((int)readSize == size) return resBuffer;
-            else throw new ProcessMemoryReadException();
+            else throw new ProcessMemoryReadWriteException();
+        }
+
+        static void writeMemory(long address, byte[] buffer)
+        {
+            WriteProcessMemory(leagueProcess.Handle, (IntPtr)address, buffer, buffer.Length, out IntPtr wroteSize);
+            if ((int)wroteSize == buffer.Length) return;
+            else throw new ProcessMemoryReadWriteException();
         }
 
         static string readString(long address)
@@ -97,6 +102,9 @@ namespace ff_alarm
                     int leagueIsChatFocused = leagueClientChatUi + 0x645;
                     if (DEBUG) Console.WriteLine("leagueIsChatFocused: 0x" + leagueIsChatFocused.ToString("X"));
 
+                    int leagueChatInputText = leagueClientChatUi + 0x5E4;
+                    if (DEBUG) Console.WriteLine("leagueChatInputText: 0x" + leagueChatInputText.ToString("X"));
+
                     int leagueMessageList = leagueClientChatUi + 0xB8;
 
                     int oldNextMessageId = 0;
@@ -135,14 +143,21 @@ namespace ff_alarm
 
                                     SetForegroundWindow(leagueProcess.MainWindowHandle);
                                     Thread.Sleep(200);
-                                    while (!BitConverter.ToBoolean(readMemory(leagueIsChatFocused, 1), 0))
+                                    while (!BitConverter.ToBoolean(readMemory(leagueIsChatOpen, 1), 0))
                                     {
                                         Keyboard.sendKey(0x1C);
                                     }
 
-                                    Keyboard.sendKeyWithModifier(0x08, 0x2A);
-                                    Keyboard.sendKey(0x21);
-                                    Keyboard.sendKey(0x21);
+                                    writeMemory(leagueChatInputText, new byte[] {
+                                        0x2F, 0x00, 0x66, 0x00, // '/' 'f'
+                                        0x66, 0x00, 0x00, 0x00, // 'f' NULL
+                                        0x00, 0x00, 0x00, 0x00, // NULL NULL
+                                        0x00, 0x00, 0x00, 0x00, // NULL NULL
+                                        0x00, 0x00, 0x00, 0x00, // NULL NULL
+                                        0x07, 0x00, 0x00, 0x00, // 7
+                                    });
+                                    Thread.Sleep(100);
+                                    
                                     Keyboard.sendKey(0x1C);
 
                                     Thread.Sleep(400);
@@ -156,9 +171,9 @@ namespace ff_alarm
                         Thread.Sleep(10);
                     }
                 }
-                catch (ProcessMemoryReadException)
+                catch (ProcessMemoryReadWriteException)
                 {
-                    Console.WriteLine("Process memory read exception, restarting in 5 second");
+                    Console.WriteLine("Process memory read/write exception, restarting in 5 second");
                     Thread.Sleep(5000);
                 }
             }
