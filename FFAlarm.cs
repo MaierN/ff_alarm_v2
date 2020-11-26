@@ -17,6 +17,8 @@ namespace ff_alarm
         static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int nSize, out IntPtr lpNumberOfBytesRead);
         [DllImport("kernel32.dll")]
         static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int nSize, out IntPtr lpNumberOfBytesWritten);
+        [DllImport("user32.dll")]
+        public static extern int SetForegroundWindow(IntPtr hWnd);
 
         static bool DEBUG = false;
 
@@ -47,6 +49,7 @@ namespace ff_alarm
         static void Main(string[] args)
         {
             Console.WriteLine("=== FF alarm ===");
+
             for (; ; )
             {
                 try
@@ -88,6 +91,12 @@ namespace ff_alarm
                     int leagueNextMessageId = leagueClientChatUi + 0xB0;
                     if (DEBUG) Console.WriteLine("leagueNextMessageId: 0x" + leagueNextMessageId.ToString("X"));
 
+                    int leagueIsChatOpen = leagueClientChatUi + 0x62C;
+                    if (DEBUG) Console.WriteLine("leagueIsChatOpen: 0x" + leagueIsChatOpen.ToString("X"));
+
+                    int leagueIsChatFocused = leagueClientChatUi + 0x645;
+                    if (DEBUG) Console.WriteLine("leagueIsChatFocused: 0x" + leagueIsChatFocused.ToString("X"));
+
                     int leagueMessageList = leagueClientChatUi + 0xB8;
 
                     int oldNextMessageId = 0;
@@ -118,11 +127,25 @@ namespace ff_alarm
 
                             if (message.Contains(MESSAGE_ENEMY_FF))
                             {
-                                for (int k = 0; k < 2; k++)
+                                for (int k = 0; k < 3; k++)
                                 {
-                                    Console.WriteLine("Alarm!!!");
+                                    Console.WriteLine("FF ALARM!");
                                     SoundPlayer simpleSound = new SoundPlayer(@"alarm_sound.wav");
-                                    simpleSound.PlaySync();
+                                    simpleSound.Play();
+
+                                    SetForegroundWindow(leagueProcess.MainWindowHandle);
+                                    Thread.Sleep(200);
+                                    while (!BitConverter.ToBoolean(readMemory(leagueIsChatFocused, 1), 0))
+                                    {
+                                        Keyboard.sendKey(0x1C);
+                                    }
+
+                                    Keyboard.sendKeyWithModifier(0x08, 0x2A);
+                                    Keyboard.sendKey(0x21);
+                                    Keyboard.sendKey(0x21);
+                                    Keyboard.sendKey(0x1C);
+
+                                    Thread.Sleep(400);
                                 }
 
                                 Console.WriteLine("Press enter to continue");
