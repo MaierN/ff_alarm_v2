@@ -67,7 +67,7 @@ namespace ff_alarm
 
                         if (processes.Length == 0)
                         {
-                            Console.WriteLine("Could not find process \"League of Legends\", retrying in 5 second");
+                            Console.WriteLine("Could not find process \"League of Legends\", retrying in 5 seconds");
                             Thread.Sleep(5000);
                         }
                     }
@@ -173,7 +173,7 @@ namespace ff_alarm
                 }
                 catch (ProcessMemoryReadWriteException)
                 {
-                    Console.WriteLine("Process memory read/write exception, restarting in 5 second");
+                    Console.WriteLine("Process memory read/write exception, restarting in 5 seconds");
                     Thread.Sleep(5000);
                 }
             }
